@@ -1,19 +1,19 @@
-# Unity (interpretAR_Unity)
-interpretAR/interpretAR_Unity/[Ll]ibrary/
-interpretAR/interpretAR_Unity/[Tt]emp/
-interpretAR/interpretAR_Unity/[Oo]bj/
-interpretAR/interpretAR_Unity/[Bb]uild/
-interpretAR/interpretAR_Unity/[Ll]ogs/
-interpretAR/interpretAR_Unity/[Mm]emoryCaptures/
-interpretAR/interpretAR_Unity/UserSettings/
+# Unity (ViSignAR_Unity)
+ViSignAR/ViSignAR_Unity/[Ll]ibrary/
+ViSignAR/ViSignAR_Unity/[Tt]emp/
+ViSignAR/ViSignAR_Unity/[Oo]bj/
+ViSignAR/ViSignAR_Unity/[Bb]uild/
+ViSignAR/ViSignAR_Unity/[Ll]ogs/
+ViSignAR/ViSignAR_Unity/[Mm]emoryCaptures/
+ViSignAR/ViSignAR_Unity/UserSettings/
 *.unitypackage
 
-# Android / Gradle / Android Studio (anywhere under interpretAR)
-interpretAR/**/build/
-interpretAR/**/.gradle/
-interpretAR/**/.idea/
-interpretAR/**/local.properties
-interpretAR/**/captures/
+# Android / Gradle / Android Studio (anywhere under ViSignAR)
+ViSignAR/**/build/
+ViSignAR/**/.gradle/
+ViSignAR/**/.idea/
+ViSignAR/**/local.properties
+ViSignAR/**/captures/
 *.iml
 *.apk
 *.aab
