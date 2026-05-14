@@ -1,0 +1,28 @@
+{
+  "version": "1.0.0",
+  "entries": [
+    { "source": "xin chào",  "signIds": ["SIGN-CHAO"],       "priority": 10 },
+    { "source": "cảm ơn",    "signIds": ["SIGN-CAM_ON"],     "priority": 10 },
+    { "source": "chúng tôi", "signIds": ["SIGN-CHUNG_TOI"],  "priority": 10 },
+    { "source": "chúng ta",  "signIds": ["SIGN-CHUNG_TA"],   "priority": 10 },
+    { "source": "bao nhiêu", "signIds": ["SIGN-BAO_NHIEU"],  "priority": 10 },
+    { "source": "ở đâu",     "signIds": ["SIGN-O_DAU"],      "priority": 10 },
+    { "source": "gia đình",  "signIds": ["SIGN-GIA_DINH"],   "priority": 10 },
+    { "source": "lúc nào",   "signIds": ["SIGN-LUC_NAO"],    "priority": 10 },
+    { "source": "tôi",       "signIds": ["SIGN-TOI"],        "priority": 5  },
+    { "source": "bạn",       "signIds": ["SIGN-BAN"],        "priority": 5  },
+    { "source": "ai",        "signIds": ["SIGN-AI"],         "priority": 5  },
+    { "source": "gì",        "signIds": ["SIGN-GI"],         "priority": 5  },
+    { "source": "cha",       "signIds": ["SIGN-CHA"],        "priority": 5  },
+    { "source": "mẹ",        "signIds": ["SIGN-ME"],         "priority": 5  },
+    { "source": "ông",       "signIds": ["SIGN-ONG"],        "priority": 5  },
+    { "source": "bà",        "signIds": ["SIGN-BA"],         "priority": 5  },
+    { "source": "anh",       "signIds": ["SIGN-ANH"],        "priority": 5  },
+    { "source": "chị",       "signIds": ["SIGN-CHI"],        "priority": 5  },
+    { "source": "em",        "signIds": ["SIGN-EM"],         "priority": 5  },
+    { "source": "ăn",        "signIds": ["SIGN-AN"],         "priority": 5  },
+    { "source": "uống",      "signIds": ["SIGN-UONG"],       "priority": 5  },
+    { "source": "nước",      "signIds": ["SIGN-NUOC"],       "priority": 5  },
+    { "source": "nhà",       "signIds": ["SIGN-NHA"],        "priority": 5  }
+  ]
+}

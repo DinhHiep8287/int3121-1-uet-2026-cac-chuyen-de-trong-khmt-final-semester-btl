@@ -18,3 +18,9 @@ interpretAR/**/captures/
 *.apk
 *.aab
 *.class
+
+# Expo / React Native
+ViSignAR/node_modules/
+ViSignAR/.expo/
+ViSignAR/dist/
+ViSignAR/.env
