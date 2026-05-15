@@ -5,6 +5,7 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
+    "android:emu": "start /B %LOCALAPPDATA%\\Android\\Sdk\\emulator\\emulator.exe -avd Medium_Phone_API_35 & %LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe wait-for-device && expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web"
   },

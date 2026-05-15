@@ -29,7 +29,10 @@ function sttErrorMessage(err: unknown): string {
     switch (err.code) {
       case 'permission_denied': return 'Không có quyền microphone.'
       case 'too_short':         return 'Ghi âm quá ngắn, vui lòng nói dài hơn.'
+      case 'file_too_large':    return 'File ghi âm quá lớn, vui lòng ghi ngắn hơn.'
       case 'no_speech':         return 'Không nhận ra giọng nói, thử lại.'
+      case 'invalid_key':       return 'API key không hợp lệ. Kiểm tra file .env.'
+      case 'rate_limit':        return 'Quá nhiều yêu cầu. Vui lòng chờ vài giây.'
       case 'network':           return 'Lỗi mạng hoặc timeout. Kiểm tra kết nối.'
       case 'api_error':         return 'Lỗi dịch vụ nhận dạng. Thử lại sau.'
       default:                  return 'Lỗi không xác định. Thử lại.'

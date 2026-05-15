@@ -45,7 +45,7 @@ ViSignAR/
 │   └── services/
 │       ├── normalize.ts      # lowercase + trim + collapse spaces, giữ dấu tiếng Việt
 │       ├── lookup.ts         # Phrase-first longest-match dictionary lookup
-│       ├── stt.ts            # OpenAI Whisper + SttError types + auto-stop + stub xoay vòng
+│       ├── stt.ts            # OpenAI Whisper + SttError types + auto-stop + hallucination filter (no_speech_prob) + stub xoay vòng
 │       ├── playback.ts       # Queue worker, inter-sign delay
 │       └── logger.ts         # 8 event types (REQ-OBS-001)
 ├── assets/
@@ -133,7 +133,7 @@ npx expo export --platform android    # Bundle test
 | REQ-INT-002 | 3 màn hình | ✅ |
 | REQ-INT-003 | 6 status badge | ✅ |
 | REQ-INT-004 | Mic chỉ bật khi active session | ✅ |
-| REQ-INT-006 | OpenAI Whisper + timeout 15s + retry | ✅ (stub mode khi chưa có key) |
+| REQ-INT-006 | OpenAI Whisper + timeout 15s + retry + hallucination filter | ✅ |
 | REQ-INT-007 | Unity bridge `playSequence()` | 🔲 Giai đoạn 4 |
 | REQ-FUNC-001 | Chỉ nhận speech input | ✅ |
 | REQ-FUNC-003 | Normalize deterministic | ✅ |
@@ -156,7 +156,7 @@ npx expo export --platform android    # Bundle test
 |---|---|---|
 | 1 | UI Shell + Core Pipeline (normalize, lookup, logger, playback) | ✅ Hoàn thành |
 | 2 | Settings store, consent gate, delay wiring, UnityView stub có feedback | ✅ Hoàn thành |
-| 3 | STT production-ready: `SttError` types, auto-stop 30s, min duration, stub xoay vòng | ✅ Hoàn thành |
+| 3 | STT production-ready: `SttError` types, auto-stop 30s, min duration, stub xoay vòng, hallucination filter (`no_speech_prob`), đã test với key thật | ✅ Hoàn thành |
 | 4 | Unity project + 23 animation clips + Expo bare workflow + native bridge | 🔲 Chưa làm |
 | 5 | Demo prep: 5× end-to-end, Android/iOS parity, EAS build | 🔲 Chưa làm |
 
@@ -165,4 +165,4 @@ npx expo export --platform android    # Bundle test
 ## Bước tiếp theo
 
 - **Giai đoạn 4:** Tạo Unity project, tạo 23 animation clips (4 pha mỗi clip), chạy `npx expo prebuild`, cài `react-native-unity-view`, thay `UnityView.tsx` stub bằng bridge thật
-- **Giai đoạn 3 (hoàn thiện):** Cắm `EXPO_PUBLIC_OPENAI_KEY` thật và test trên thiết bị khi có key
+- **Giai đoạn 5:** Demo prep — 5× end-to-end, Android/iOS parity, EAS build

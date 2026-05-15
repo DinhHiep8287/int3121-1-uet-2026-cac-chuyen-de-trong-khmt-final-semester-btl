@@ -3,10 +3,20 @@ import { log } from './logger'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const WHISPER_URL = 'https://api.openai.com/v1/audio/transcriptions'
-const TIMEOUT_MS = 15_000   // REQ-INT-006: timeout 15s
-const MAX_RETRIES = 1       // REQ-INT-006: retry 1 lần
+const TIMEOUT_MS = 15_000    // REQ-INT-006: timeout 15s
+const MAX_RETRIES = 1        // REQ-INT-006: retry 1 lần (chỉ cho network/429)
+const RETRY_DELAY_MS = 2_000 // delay trước khi retry (tránh 429 liên tiếp)
 const MAX_RECORD_MS = 30_000 // tự động dừng sau 30s
 const MIN_RECORD_MS = 300    // bỏ qua nếu ghi âm quá ngắn (<0.3s)
+const MAX_FILE_BYTES = 24 * 1024 * 1024 // 24MB — Whisper limit là 25MB
+// Whisper hallucinate các câu YouTube khi gặp im lặng/noise — lọc bằng no_speech_prob
+const NO_SPEECH_THRESHOLD = 0.6
+
+// Prompt hint giúp Whisper bias về dấu tiếng Việt và từ vựng ứng dụng
+// Không được dài quá 224 token (~900 ký tự)
+const VI_PROMPT =
+  'Xin chào, cảm ơn, tôi, bạn, chúng tôi, chúng ta, ai, ở đâu, gì, bao nhiêu, lúc nào, ' +
+  'gia đình, cha, mẹ, ông, bà, anh, chị, em, ăn, uống, nước, nhà.'
 
 // Stub phrases xoay vòng để test pipeline khi chưa có API key
 const STUB_PHRASES = [
@@ -27,9 +37,12 @@ let stubIndex = 0
 export type SttErrorCode =
   | 'permission_denied'   // Không có quyền mic
   | 'too_short'           // Ghi âm quá ngắn
+  | 'file_too_large'      // File vượt 25MB (hiếm với 30s ghi âm)
   | 'no_speech'           // Whisper trả về chuỗi rỗng
+  | 'invalid_key'         // API key sai hoặc hết hạn (HTTP 401)
+  | 'rate_limit'          // Quá nhiều request (HTTP 429)
   | 'network'             // Không có mạng / timeout
-  | 'api_error'           // Whisper trả về lỗi HTTP
+  | 'api_error'           // Lỗi HTTP khác từ Whisper
   | 'unknown'             // Lỗi không xác định
 
 export class SttError extends Error {
@@ -140,6 +153,18 @@ export async function stopAndTranscribe(): Promise<SttResult> {
     throw new SttError('too_short', `Recording only ${durationMs}ms — too short to transcribe`)
   }
 
+  // Kiểm tra file size trước khi upload (Whisper limit: 25MB)
+  try {
+    const { size } = await _getFileInfo(uri)
+    if (size > MAX_FILE_BYTES) {
+      throw new SttError('file_too_large', `File ${(size / 1024 / 1024).toFixed(1)}MB exceeds 24MB limit`)
+    }
+  } catch (err) {
+    if (err instanceof SttError) throw err
+    // Không block nếu không đọc được size
+    console.warn('[STT] Could not check file size:', err)
+  }
+
   const apiKey = process.env.EXPO_PUBLIC_OPENAI_KEY
   if (!apiKey) {
     return _stubResult(durationMs)
@@ -158,6 +183,14 @@ export async function cancelRecording(): Promise<void> {
 }
 
 // ─── Private helpers ───────────────────────────────────────────────────────────
+async function _getFileInfo(uri: string): Promise<{ size: number }> {
+  // expo-file-system không bắt buộc — dùng fetch HEAD nếu là file:// URI
+  // Trên React Native, fetch một file:// URI trả về blob với size
+  const res = await fetch(uri)
+  const blob = await res.blob()
+  return { size: blob.size }
+}
+
 async function _cleanupRecording(): Promise<void> {
   if (!recording) return
   try {
@@ -184,6 +217,12 @@ async function _transcribeWithRetry(
   let lastErr: unknown
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      // Delay trước retry để tránh 429 liên tiếp
+      await _sleep(RETRY_DELAY_MS)
+      console.warn(`[STT] retry attempt ${attempt}...`)
+    }
+
     try {
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
@@ -192,6 +231,8 @@ async function _transcribeWithRetry(
       form.append('file', { uri, name: 'audio.m4a', type: 'audio/m4a' } as unknown as Blob)
       form.append('model', 'whisper-1')
       form.append('language', 'vi')
+      form.append('response_format', 'verbose_json')
+      form.append('prompt', VI_PROMPT)  // bias dấu tiếng Việt
 
       const res = await fetch(WHISPER_URL, {
         method: 'POST',
@@ -203,34 +244,52 @@ async function _transcribeWithRetry(
 
       if (!res.ok) {
         const body = await res.text()
-        throw new SttError('api_error', `HTTP ${res.status}: ${body}`)
+        throw _httpError(res.status, body)
       }
 
-      const data = (await res.json()) as { text: string }
+      const data = (await res.json()) as {
+        text: string
+        segments?: { no_speech_prob: number }[]
+      }
 
       if (!data.text?.trim()) {
         throw new SttError('no_speech', 'Whisper returned empty transcript')
+      }
+
+      // Phát hiện hallucination: no_speech_prob cao → Whisper đang bịa câu
+      const maxNoSpeech = data.segments?.length
+        ? Math.max(...data.segments.map((s) => s.no_speech_prob))
+        : 0
+      console.log(`[STT] no_speech_prob=${maxNoSpeech.toFixed(3)} text="${data.text.trim()}"`)
+      if (maxNoSpeech > NO_SPEECH_THRESHOLD) {
+        throw new SttError('no_speech', `Hallucination detected (no_speech_prob=${maxNoSpeech.toFixed(2)})`)
       }
 
       return { text: data.text.trim(), durationMs }
 
     } catch (err) {
       lastErr = err
-      if (err instanceof SttError && err.code !== 'network') {
-        // api_error, no_speech v.v. — không retry
-        break
-      }
-      // network/timeout — thử lại
-      if (attempt < MAX_RETRIES) {
-        console.warn(`[STT] attempt ${attempt + 1} failed, retrying...`)
-      }
+      const sttErr = _toSttError(err)
+
+      // Chỉ retry khi network timeout hoặc rate limit
+      const canRetry = sttErr.code === 'network' || sttErr.code === 'rate_limit'
+      if (!canRetry || attempt >= MAX_RETRIES) break
     }
   }
 
-  // Chuẩn hoá lỗi trước khi throw
   const sttErr = _toSttError(lastErr)
   log('stt_error', `${sttErr.code}: ${sttErr.message}`)
   throw sttErr
+}
+
+/** Phân loại lỗi HTTP theo status code */
+function _httpError(status: number, body: string): SttError {
+  switch (status) {
+    case 401: return new SttError('invalid_key',  'Invalid or expired API key')
+    case 413: return new SttError('file_too_large', 'Audio file exceeds 25MB limit')
+    case 429: return new SttError('rate_limit',   'Rate limit exceeded, please wait')
+    default:  return new SttError('api_error',    `HTTP ${status}: ${body.slice(0, 120)}`)
+  }
 }
 
 function _toSttError(err: unknown): SttError {
@@ -239,8 +298,12 @@ function _toSttError(err: unknown): SttError {
   if (msg.includes('abort') || msg.includes('timeout')) {
     return new SttError('network', 'Request timed out')
   }
-  if (msg.includes('network') || msg.includes('fetch')) {
+  if (msg.includes('network') || msg.includes('fetch') || msg.includes('Failed to fetch')) {
     return new SttError('network', 'Network unavailable')
   }
   return new SttError('unknown', msg)
+}
+
+function _sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
